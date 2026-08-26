@@ -4,10 +4,179 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------
+
+enum Role {
+  ADMIN     @map("admin")
+  SUB_ADMIN @map("sub-admin")
+  CASHIER   @map("cashier")
+  CLIENT    @map("client")
+}
+
+enum PaymentMethod {
+  CARD     @map("card")
+  TRANSFER @map("transfer")
+  WALLET   @map("wallet")
+}
+
+// ---------------------------------------------------------
+// USER
+// ---------------------------------------------------------
+
+model User {
+  id       Int     @id @default(autoincrement())
+  name     String
+  email    String  @unique
+  password String
+  role     Role    @default(CLIENT)
+  active   Boolean @default(true)
+
+  // Perfil extendido (opcional)
+  fullName  String?
+  address   String?
+  birthDate DateTime?
+  idNumber  String?
+  country   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  products Product[] @relation("ProductOwner")
+  orders   Order[]   @relation("OrderCashier")
+  cart     Cart?
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------
+// PRODUCT
+// ---------------------------------------------------------
+
+model Product {
+  id      Int   @id @default(autoincrement())
+  ownerId Int?
+  owner   User? @relation("ProductOwner", fields: [ownerId], references: [id])
+
+  name        String
+  price       Decimal @db.Decimal(10, 2)
+  stock       Int     @default(0)
+  category    String
+  description String
+  image       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  @@index([category])
+  @@map("products")
+}
+
+// ---------------------------------------------------------
+// ORDER (factura)
+// ---------------------------------------------------------
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  invoiceNumber String   @unique
+  date          DateTime @default(now())
+
+  // Datos del cliente (snapshot al momento de la compra)
+  customerName       String
+  customerEmail      String
+  customerPhone      String
+  customerAddress    String
+  customerCity       String
+  customerDocumentId String
+
+  notes String?
+
+  // Cajero/usuario que registró la venta
+  cashierId Int
+  cashier   User @relation("OrderCashier", fields: [cashierId], references: [id])
+
+  paymentMethod   PaymentMethod
+  walletNumber    String?
+  bank            String?
+  reference       String?
+  cardName        String?
+  cardNumberLast4 String?
+
+  total Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  items OrderItem[]
+
+  @@index([cashierId])
+  @@map("orders")
+}
+
+// Línea de una orden. Se guarda name/price como snapshot
+// (por si el producto cambia de precio o se elimina después),
+// y además productId como referencia real para reportes/joins.
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  ownerId Int? // sub-admin dueño del producto al momento de la venta
+
+  name     String
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
+
+// ---------------------------------------------------------
+// CART
+// Un usuario tiene un único carrito activo (1 a 1),
+// y ese carrito tiene muchos ítems (1 a muchos).
+// ---------------------------------------------------------
+
+model Cart {
+  id Int @id @default(autoincrement())
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lastActivity DateTime @default(now())
+
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id Int @id @default(autoincrement())
+
+  cartId Int
+  cart   Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  cantidad Int @default(1)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
 }
