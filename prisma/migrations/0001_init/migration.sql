@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "proyecto6";
-
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('admin', 'sub-admin', 'cashier', 'client');
 
