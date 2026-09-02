@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsIn,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -9,6 +9,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { PaymentMethod } from '../../generated/prisma/client';
 
 class OrderItemDto {
   @IsOptional()
@@ -65,8 +66,8 @@ export class CreateOrderDto {
   @IsInt()
   cashierId: number;
 
-  @IsIn(['card', 'transfer', 'wallet'])
-  paymentMethod: string;
+  @IsEnum(PaymentMethod)
+  paymentMethod: PaymentMethod;
 
   @IsNotEmpty()
   @IsNumber()

@@ -1,4 +1,5 @@
-import { IsIn, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { Role } from '../../generated/prisma/client';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -14,6 +15,6 @@ export class CreateUserDto {
   @MinLength(6)
   password: string;
 
-  @IsIn(['admin', 'sub-admin', 'cashier', 'client'])
-  role: string;
+  @IsEnum(Role)
+  role: Role;
 }
