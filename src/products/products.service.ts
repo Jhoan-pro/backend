@@ -32,19 +32,14 @@ export class ProductsService {
     });
 
     if (!product) {
-      throw new NotFoundException(
-        `Producto con ID ${id} no encontrado`,
-      );
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
     }
 
     return product;
   }
 
   // Actualizar producto
-  async update(
-    id: number,
-    updateProductDto: UpdateProductDto,
-  ) {
+  async update(id: number, updateProductDto: UpdateProductDto) {
     // Verificamos que exista
     await this.findOne(id);
 
