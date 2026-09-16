@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -7,25 +7,59 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Crear usuario
   async create(createUserDto: CreateUserDto) {
-    return this.prisma.user.create({
+    return await this.prisma.user.create({
       data: createUserDto,
     });
   }
 
-  findAll() {
-    return 'This action returns all users';
+  // Obtener todos los usuarios
+  async findAll() {
+    return await this.prisma.user.findMany({
+      orderBy: {
+        id: 'asc',
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  // Obtener un usuario por ID
+  async findOne(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  // Actualizar usuario
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    // Verificamos que exista
+    await this.findOne(id);
+
+    return await this.prisma.user.update({
+      where: {
+        id,
+      },
+      data: updateUserDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  // Eliminar usuario
+  async remove(id: number) {
+    // Verificamos que exista
+    await this.findOne(id);
+
+    return await this.prisma.user.delete({
+      where: {
+        id,
+      },
+    });
   }
 }
