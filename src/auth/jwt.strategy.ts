@@ -5,9 +5,7 @@ import {
 } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { isUUID } from 'class-validator';
 import { UsersService } from '../users/users.service';
-import { jwtOptions } from './auth.config';
 
 interface JwtPayload {
   sub: number;
@@ -16,11 +14,11 @@ interface JwtPayload {
 }
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly users: UsersService) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  constructor(private readonly usersService: UsersService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: jwtOptions().secret as string,
+      secretOrKey: process.env.JWT_SECRET || 'un-secreto-temporal-de-respaldo',
       algorithms: ['HS256'],
       ignoreExpiration: false,
     });
@@ -30,14 +28,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (
       !payload ||
       typeof payload.sub !== 'number' ||
-      !isUUID(payload.sub) ||
       typeof payload.exp !== 'number'
-    )
+    ) {
       throw new UnauthorizedException();
+    }
+
     try {
-      return await this.users.findOne(payload.sub);
+      return await this.usersService.findOne(payload.sub);
     } catch (error) {
-      if (error instanceof NotFoundException) throw new UnauthorizedException();
+      if (error instanceof NotFoundException) {
+        throw new UnauthorizedException();
+      }
       throw error;
     }
   }
